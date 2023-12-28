@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/book.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import '../screens/book_detail.dart';
 
 class ShoppingCartPage extends StatefulWidget {
   const ShoppingCartPage({Key? key}) : super(key: key);
@@ -88,6 +89,16 @@ class ShoppingCartPageState extends State<ShoppingCartPage> {
                       itemBuilder: (context, index) {
                         final Book book = shoppingCart[index];
                         return ListTile(
+                          onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    BookDetailPage(book: book),
+                              )).then((value) {
+                            setState(() {
+                              shoppingCartFuture = getShoppingCart();
+                            });
+                          }),
                           leading: Image.network(book.imageUrl),
                           title: Text(book.title),
                           subtitle: Text('Price: \$${book.price}'),
