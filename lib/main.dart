@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import './screens/main_screen.dart';
-import './models/book.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+// import './models/book.dart';
+// import 'package:hive_flutter/hive_flutter.dart';
 import 'screens/shopping_cart.dart';
 import 'package:provider/provider.dart';
 import './widgets/theme_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import './adaptors/book_adaptor.dart';
+// import './adaptors/book_adaptor.dart';
 
 void main() async {
   // await Hive.initFlutter();
