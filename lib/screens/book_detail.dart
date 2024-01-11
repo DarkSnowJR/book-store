@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/book.dart';
-import 'package:hive/hive.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class BookDetailPage extends StatefulWidget {
   final Book book;
@@ -22,35 +23,64 @@ class _BookDetailPageState extends State<BookDetailPage> {
   }
 
   Future<bool> checkShoppingCartStatus() async {
-    var box = await Hive.openBox<Book>('shopping_cart');
-    var isInCart = box.values.any((cartBook) => cartBook.id == widget.book.id);
-    return isInCart;
+    try {
+      final Uri uri = Uri.parse('http://localhost:8000/cart/items/1/');
+      final response = await http.get(uri);
+
+      if (response.statusCode == 200) {
+        final List<dynamic> cartItems = json.decode(response.body);
+
+        // Check if the book is in the cart based on its ID
+        var isInCart =
+            cartItems.any((cartItem) => cartItem['id'] == widget.book.id);
+        return isInCart;
+      } else {
+        // Handle error response
+        throw Exception('Failed to load cart items');
+      }
+    } catch (error) {
+      // Handle other errors
+      throw Exception('Failed to load cart items');
+    }
   }
 
-  void addToShoppingCart() async {
-    var box = await Hive.openBox<Book>('shopping_cart');
-    box.add(widget.book);
-    setState(() {
-      isInShoppingCart = Future.value(true);
-    });
-    // ignore: use_build_context_synchronously
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        backgroundColor: Colors.green,
-        duration: Duration(milliseconds: 500),
-        content: Text('Added to Shopping Cart'),
-      ),
-    );
-  }
+  Future<void> updateShoppingCart(bool addToCart) async {
+    try {
+      final Uri uri = Uri.parse('http://localhost:8000/cart/update/1/');
 
-  void removeFromShoppingCart() async {
-    var box = await Hive.openBox<Book>('shopping_cart');
-    box.deleteAt(box.values
-        .toList()
-        .indexWhere((cartBook) => cartBook.id == widget.book.id));
-    setState(() {
-      isInShoppingCart = Future.value(false);
-    });
+      final response = await http.post(
+        uri,
+        body: jsonEncode({
+          'book_id': widget.book.id,
+          'add_to_cart': addToCart,
+        }),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        // Update the local state and show a SnackBar
+        setState(() {
+          isInShoppingCart = Future.value(addToCart);
+        });
+
+        // ignore: use_build_context_synchronously
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: addToCart ? Colors.green : Colors.red,
+            duration: const Duration(milliseconds: 500),
+            content: Text(addToCart
+                ? 'Added to Shopping Cart'
+                : 'Removed from Shopping Cart'),
+          ),
+        );
+      } else {
+        // Handle error response
+        throw Exception('Failed to update shopping cart');
+      }
+    } catch (error) {
+      // Handle other errors
+      throw Exception('Failed to update shopping cart');
+    }
   }
 
   @override
@@ -60,11 +90,12 @@ class _BookDetailPageState extends State<BookDetailPage> {
         title: Text(widget.book.title),
         flexibleSpace: Container(
           decoration: const BoxDecoration(
-              gradient: LinearGradient(
-            colors: [Colors.red, Colors.blue],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          )),
+            gradient: LinearGradient(
+              colors: [Colors.red, Colors.blue],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
         ),
       ),
       body: Padding(
@@ -109,9 +140,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                 } else {
                   // Return the appropriate icon based on the shopping cart status
                   return TextButton.icon(
-                    onPressed: snapshot.data!
-                        ? removeFromShoppingCart
-                        : addToShoppingCart,
+                    onPressed: () => updateShoppingCart(!snapshot.data!),
                     icon: Icon(snapshot.data!
                         ? Icons.remove_shopping_cart
                         : Icons.add_shopping_cart),

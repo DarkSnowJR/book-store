@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
 import '../models/book.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import '../screens/book_detail.dart';
 
 class ShoppingCartPage extends StatefulWidget {
@@ -23,29 +25,74 @@ class ShoppingCartPageState extends State<ShoppingCartPage> {
   }
 
   Future<List<Book>> getShoppingCart() async {
-    var box = await Hive.openBox<Book>('shopping_cart');
-    return box.values.toList();
+    try {
+      final Uri uri = Uri.parse('http://localhost:8000/cart/items/1/');
+      final response = await http.get(uri);
+
+      if (response.statusCode == 200) {
+        final List<dynamic> cartItems = json.decode(response.body);
+
+        // Convert the cart items to a list of Book objects
+        List<Book> shoppingCart = cartItems.map((item) {
+          return Book(
+            item['title'],
+            item['author'],
+            item['description'],
+            item['imageUrl'],
+            item['id'],
+            item['price'],
+          );
+        }).toList();
+
+        return shoppingCart;
+      } else {
+        // Handle error response
+        throw Exception('Failed to load cart items');
+      }
+    } catch (error) {
+      // Handle other errors
+      throw Exception('Failed to load cart items');
+    }
   }
 
-  void removeFromShoppingCart(Book book, BuildContext context) async {
-    var box = await Hive.openBox<Book>('shopping_cart');
-    box.deleteAt(
-        box.values.toList().indexWhere((cartBook) => cartBook.id == book.id));
-
-    // Update the Future variable to trigger a rebuild
-    setState(() {
-      shoppingCartFuture = getShoppingCart();
-    });
-
-    // ignore: use_build_context_synchronously
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        backgroundColor: Colors.red,
-        duration: Duration(milliseconds: 500),
-        content: Text('Removed from Shopping Cart'),
-      ),
+  Future<void> removeFromShoppingCart(Book book, BuildContext context) async {
+  try {
+    final Uri uri = Uri.parse('http://localhost:8000/cart/update/1/');
+    final response = await http.post(
+      uri,
+      body: jsonEncode({
+        'book_id': book.id,
+        'add_to_cart': false, // Set to false since it's a removal
+      }),
+      headers: {'Content-Type': 'application/json'},
     );
+
+    if (response.statusCode == 200) {
+      // Update the Future variable to trigger a rebuild
+      setState(() {
+        shoppingCartFuture = getShoppingCart();
+      });
+
+      // Show a SnackBar
+      // ignore: use_build_context_synchronously
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: Colors.red,
+          duration: Duration(milliseconds: 500),
+          content: Text('Removed from Shopping Cart'),
+        ),
+      );
+    } else {
+      // Handle error response
+      throw Exception('Failed to remove item from the cart');
+    }
+  } catch (error) {
+    // Handle other errors
+    print(error);
+    throw Exception('Failed to remove item from the cart');
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
