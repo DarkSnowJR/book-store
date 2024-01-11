@@ -88,7 +88,6 @@ class ShoppingCartPageState extends State<ShoppingCartPage> {
     }
   } catch (error) {
     // Handle other errors
-    print(error);
     throw Exception('Failed to remove item from the cart');
   }
 }

@@ -9,9 +9,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import './adaptors/book_adaptor.dart';
 
 void main() async {
-  await Hive.initFlutter();
-  Hive.registerAdapter(BookAdapter());
-  await Hive.openBox<Book>('shopping_cart');
+  // await Hive.initFlutter();
+  // Hive.registerAdapter(BookAdapter());
+  // await Hive.openBox<Book>('shopping_cart');
 
   WidgetsFlutterBinding.ensureInitialized();
   await SharedPreferences
